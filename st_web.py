@@ -6,7 +6,6 @@ from metpy.plots import add_metpy_logo, Hodograph, SkewT
 from metpy.units import units
 import numpy as np
 import os, sys
-import scipy.signal as signal
 import streamlit as st
 from io import StringIO
 
@@ -93,6 +92,7 @@ if uploaded_file:
 	except:
 		st.error('Balloon no rise! Is ST on the ground?')
 		exit(1)
+	proc_data = proc_data.drop(columns=['Pressure Difference (%)'])
 		
 	display_data = proc_data.copy()
 	display_data['Temperature (deg C)'] = display_data['Temperature (deg C)'].apply(lambda x: format(x, '.2f'))
