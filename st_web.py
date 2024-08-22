@@ -45,7 +45,7 @@ if uploaded_file:
 		raw_data = pd.read_csv(uploaded_file, names=column.keys(), dtype=column, header=None, index_col=False)
 	except:
 		st.error('Unknown format! Use LoRa CSV file!')
-		exit(1)
+		st.stop()
 	#print('==> RAW_DATA\n', raw_data, '\n')
 	
 	option = st.selectbox(
@@ -55,9 +55,6 @@ if uploaded_file:
 	node = int(option)
 	
 	proc_data = raw_data[raw_data['Node Number'] == node]
-	if len(proc_data) == 0:
-		st.error('No record!!')
-		exit(1)
 	proc_data = proc_data.drop(['Unknown 1', 'Unknown 2', 'Unknown 3'], axis=1)
 
 	proc_data['Time (UTC)'] = pd.to_datetime(proc_data['Time (UTC)'])
@@ -91,7 +88,7 @@ if uploaded_file:
 		proc_data = proc_data.truncate(before=proc_data[proc_data['Pressure Difference (%)'] >= 0.002].index.values[0])
 	except:
 		st.error('Balloon no rise! Is ST on the ground?')
-		exit(1)
+		st.stop()
 	proc_data = proc_data.drop(columns=['Pressure Difference (%)'])
 		
 	display_data = proc_data.copy()
