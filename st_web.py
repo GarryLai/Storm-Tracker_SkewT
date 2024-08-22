@@ -88,7 +88,7 @@ if uploaded_file:
 	#Remove ground
 	proc_data['Pressure Difference (%)'] = proc_data['Pressure (hPa)'].pct_change(periods=-10)
 	try:
-		proc_data = proc_data.truncate(before=proc_data[proc_data['Pressure Difference (%)'] >= 0.0027].index.values[0])
+		proc_data = proc_data.truncate(before=proc_data[proc_data['Pressure Difference (%)'] >= 0.002].index.values[0])
 	except:
 		st.error('Balloon no rise! Is ST on the ground?')
 		exit(1)
