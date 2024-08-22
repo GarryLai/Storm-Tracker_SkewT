@@ -173,4 +173,5 @@ TOTAL= {round(tt.magnitude, 1)}''', transform=fig.transFigure, verticalalignment
 	h.plot(u[::100], v[::100])
 
 	st.pyplot(fig)
-	st.table(display_data)
+	if st.toggle("Show Data"):
+		st.table(display_data)
