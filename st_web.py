@@ -9,6 +9,9 @@ import os, sys
 import streamlit as st
 from io import StringIO
 
+drop_periods = -10
+drop_thres = 0.002
+
 st.set_page_config(
 	page_title='Storm Tracker Skew-T',
 	page_icon=':balloon:',
@@ -25,14 +28,14 @@ column = {
 	'Temperature (0.01 deg C)': float,
 	'Humidity (0.1 %)': float,
 	'Pressure (Pa)': float,
-	'Unknown 1': int,
+	'Voltage (2.2/1023 v)': float,
 	'Lonitude (0.00001 deg)': float,
 	'Latitude (0.00001 deg)': float,
 	'MSL Height (0.01m)': float,
 	'GPS Sat': int,
 	'RSSI (dB)': int,
-	'Unknown 2': int,
-	'Unknown 3': int,
+	'FREQERR': int,
+	'Unknown': int,
 	'Speed (0.01 km/hr)': float,
 	'SNR (dB)': int,
 	'Direction (0.01 deg)': float,
@@ -55,7 +58,7 @@ if uploaded_file:
 	node = int(option)
 	
 	proc_data = raw_data[raw_data['Node Number'] == node]
-	proc_data = proc_data.drop(['Unknown 1', 'Unknown 2', 'Unknown 3'], axis=1)
+	proc_data = proc_data.drop(['Unknown'], axis=1)
 
 	proc_data['Time (UTC)'] = pd.to_datetime(proc_data['Time (UTC)'])
 
@@ -67,6 +70,7 @@ if uploaded_file:
 	proc_data['MSL Height (0.01m)'] = proc_data['MSL Height (0.01m)'] * 0.01
 	proc_data['Speed (0.01 km/hr)'] = proc_data['Speed (0.01 km/hr)'] * 0.01 * 0.539956803
 	proc_data['Direction (0.01 deg)'] = proc_data['Direction (0.01 deg)'] * 0.01
+	proc_data['Voltage (2.2/1023 v)'] = proc_data['Voltage (2.2/1023 v)'] / 1023 * 2.2
 
 	proc_data = proc_data.rename({
 		'Temperature (0.01 deg C)': 'Temperature (deg C)',
@@ -77,38 +81,42 @@ if uploaded_file:
 		'MSL Height (0.01m)': 'MSL Height (m)',
 		'Speed (0.01 km/hr)': 'Speed (knots)',
 		'Direction (0.01 deg)': 'Direction (deg)',
+		'Voltage (2.2/1023 v)': 'Voltage (v)'
 	}, axis='columns')
+	
+	proc_data['Pressure Difference (%)'] = proc_data['Pressure (hPa)'].pct_change(periods=drop_periods)
 
 	#Remove dropping
-	proc_data = proc_data.truncate(after=proc_data['MSL Height (m)'].idxmax())
+	truncate_data = proc_data.truncate(after=proc_data['MSL Height (m)'].idxmax())
 	
 	#Remove ground
-	proc_data['Pressure Difference (%)'] = proc_data['Pressure (hPa)'].pct_change(periods=-10)
 	try:
-		proc_data = proc_data.truncate(before=proc_data[proc_data['Pressure Difference (%)'] >= 0.002].index.values[0])
+		truncate_data = truncate_data.truncate(before=truncate_data[truncate_data['Pressure Difference (%)'] >= drop_thres].index.values[0])
+		#1==1
 	except:
 		st.error('Balloon no rise! Is ST on the ground?')
 		st.stop()
-	proc_data = proc_data.drop(columns=['Pressure Difference (%)'])
 		
-	display_data = proc_data.copy()
+	print('==> PROCESSED_DATA\n', truncate_data, '\n')
+		
+	display_data = truncate_data.copy()
+	display_data = display_data.drop(columns=['Pressure Difference (%)'])
 	display_data['Temperature (deg C)'] = display_data['Temperature (deg C)'].apply(lambda x: format(x, '.2f'))
 	display_data['MSL Height (m)'] = display_data['MSL Height (m)'].apply(lambda x: format(x, '.2f'))
 	display_data['Humidity (%)'] = display_data['Humidity (%)'].apply(lambda x: format(x, '.1f'))
 	display_data['Direction (deg)'] = display_data['Direction (deg)'].apply(lambda x: format(x, '.2f'))
-
-	#print('==> PROCESSED_DATA\n', proc_data, '\n')
+	display_data['Voltage (v)'] = display_data['Voltage (v)'].apply(lambda x: format(x, '.2f'))
 	
-	proc_data = proc_data.sort_values('Pressure (hPa)', ascending=False)
+	truncate_data = truncate_data.sort_values('Pressure (hPa)', ascending=False)
 
 	#############################################################################################
 
-	h = proc_data['MSL Height (m)'].values * units.m
-	p = proc_data['Pressure (hPa)'].values * units.hPa
-	T = proc_data['Temperature (deg C)'].values * units.degC
-	Td = mpcalc.dewpoint_from_relative_humidity(proc_data['Temperature (deg C)'].values * units.degC, proc_data['Humidity (%)'].values * units.percent)
-	wind_speed = proc_data['Speed (knots)'].values * units.knots
-	wind_dir = proc_data['Direction (deg)'].values * units.degrees
+	h = truncate_data['MSL Height (m)'].values * units.m
+	p = truncate_data['Pressure (hPa)'].values * units.hPa
+	T = truncate_data['Temperature (deg C)'].values * units.degC
+	Td = mpcalc.dewpoint_from_relative_humidity(truncate_data['Temperature (deg C)'].values * units.degC, truncate_data['Humidity (%)'].values * units.percent)
+	wind_speed = truncate_data['Speed (knots)'].values * units.knots
+	wind_dir = truncate_data['Direction (deg)'].values * units.degrees
 	u, v = mpcalc.wind_components(wind_speed, wind_dir)
 
 	fig = plt.figure(figsize=(12, 9))
@@ -148,7 +156,6 @@ if uploaded_file:
 		cin = A()
 		cin.magnitude = np.nan
 	k_idx = mpcalc.k_index(p, T, Td)
-
 	parcel_p, parcel_t, parcel_td = mpcalc.mixed_parcel(p, T, Td, depth=500 * units.m, height=h)
 	above = h > 500 * units.m
 	press = np.concatenate([[parcel_p], p[above]])
@@ -179,7 +186,32 @@ TOTAL= {round(tt.magnitude, 1)}''', transform=fig.transFigure, verticalalignment
 	h = Hodograph(ax, component_range=50)
 	h.add_grid(increment=10)
 	h.plot(u[::100], v[::100])
-
 	st.pyplot(fig)
+	
+	plt.rcParams["date.autoformatter.minute"] = "%H:%M"
+	
+	def plot(y, y2=None, scatter=False):
+		fig, ax = plt.subplots()
+		ax.plot(proc_data['Time (UTC)'], proc_data[y], linewidth=0.7)
+		plt.xlabel('Time (UTC)')
+		plt.ylabel(y, color='b')
+		if y2:
+			ax2 = ax.twinx()
+			ax2.set_ylabel(y2, color='g')
+			if scatter:
+				ax2.scatter(proc_data['Time (UTC)'], proc_data[y2], color='g', s=3)
+			else:
+				ax2.plot(proc_data['Time (UTC)'], proc_data[y2], color='g', linewidth=0.7)
+			ax2.tick_params(axis='y', color='g')
+		ax.axvline(x=proc_data['Time (UTC)'].loc[proc_data[proc_data['Pressure Difference (%)'] >= drop_thres].index.values[0]], color='r')
+		ax.axvline(x=proc_data['Time (UTC)'].loc[proc_data['MSL Height (m)'].idxmax()], color='r')
+		st.pyplot(fig)
+	
+	plot('Pressure (hPa)', 'MSL Height (m)')
+	plot('Temperature (deg C)', 'Humidity (%)')
+	plot('Speed (knots)', 'Direction (deg)', True)
+	plot('Voltage (v)', 'GPS Sat')
+	plot('SNR (dB)', 'RSSI (dB)')
+	
 	if st.toggle("Show Data"):
 		st.table(display_data)
