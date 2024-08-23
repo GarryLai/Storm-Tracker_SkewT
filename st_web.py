@@ -138,7 +138,15 @@ if uploaded_file:
 	lfc_p, lfc_t = mpcalc.lfc(p, T, Td, prof)
 	el_p, el_t = mpcalc.el(p, T, Td, prof)
 
-	cape, cin = mpcalc.cape_cin(p, T, Td, prof)
+	class A:
+		pass
+	try:
+		cape, cin = mpcalc.cape_cin(p, T, Td, prof)
+	except:
+		cape = A()
+		cape.magnitude = np.nan
+		cin = A()
+		cin.magnitude = np.nan
 	k_idx = mpcalc.k_index(p, T, Td)
 
 	parcel_p, parcel_t, parcel_td = mpcalc.mixed_parcel(p, T, Td, depth=500 * units.m, height=h)
