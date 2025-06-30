@@ -145,7 +145,7 @@ if uploaded_file:
 	try:
 		ccl_p, ccl_t, t_c = mpcalc.ccl(p, T, Td, prof)
 	except:
-		ccl_p, ccl_t, t_c = np.nan
+		ccl_p = ccl_t = t_c = np.nan
 	lfc_p, lfc_t = mpcalc.lfc(p, T, Td, prof)
 	el_p, el_t = mpcalc.el(p, T, Td, prof)
 
