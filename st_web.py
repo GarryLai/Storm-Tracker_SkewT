@@ -159,12 +159,15 @@ if uploaded_file:
 		cin = A()
 		cin.magnitude = np.nan
 	k_idx = mpcalc.k_index(p, T, Td)
-	parcel_p, parcel_t, parcel_td = mpcalc.mixed_parcel(p, T, Td, depth=500 * units.m, height=h)
-	above = h > 500 * units.m
-	press = np.concatenate([[parcel_p], p[above]])
-	temp = np.concatenate([[parcel_t], T[above]])
-	mixed_prof = mpcalc.parcel_profile(press, parcel_t, parcel_td)
-	li = mpcalc.lifted_index(press, temp, mixed_prof)
+	try:
+		parcel_p, parcel_t, parcel_td = mpcalc.mixed_parcel(p, T, Td, depth=500 * units.m, height=h)
+		above = h > 500 * units.m
+		press = np.concatenate([[parcel_p], p[above]])
+		temp = np.concatenate([[parcel_t], T[above]])
+		mixed_prof = mpcalc.parcel_profile(press, parcel_t, parcel_td)
+		li = mpcalc.lifted_index(press, temp, mixed_prof)
+	except:
+		li = np.nan
 
 	tt = mpcalc.total_totals_index(p, T, Td)
 
