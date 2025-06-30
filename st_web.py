@@ -142,7 +142,10 @@ if uploaded_file:
 	plt.title(f'Storm Tracker #{node}\n{display_data["Time (UTC)"].iloc[0]}')
 
 	lcl_p, lcl_t = mpcalc.lcl(p[0], T[0], Td[0])
-	ccl_p, ccl_t, t_c = mpcalc.ccl(p, T, Td, prof)
+	try:
+		ccl_p, ccl_t, t_c = mpcalc.ccl(p, T, Td, prof)
+	except:
+		ccl_p, ccl_t, t_c = np.nan
 	lfc_p, lfc_t = mpcalc.lfc(p, T, Td, prof)
 	el_p, el_t = mpcalc.el(p, T, Td, prof)
 
