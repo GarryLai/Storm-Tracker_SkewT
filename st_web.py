@@ -21,6 +21,12 @@ st.title('Storm Tracker Skew-T')
 
 pd.set_option('display.max_columns', None)
 
+def opposite_az(az):
+	if az > 180:
+		return az - 180
+	else:
+		return az + 180
+
 column = {
 	'Time (UTC)': str,
 	'Channel': int,
@@ -69,7 +75,7 @@ if uploaded_file:
 	proc_data['Latitude (0.00001 deg)'] = proc_data['Latitude (0.00001 deg)'] * 0.00001
 	proc_data['MSL Height (0.01m)'] = proc_data['MSL Height (0.01m)'] * 0.01
 	proc_data['Speed (0.01 km/hr)'] = proc_data['Speed (0.01 km/hr)'] * 0.01 * 0.539956803
-	proc_data['Direction (0.01 deg)'] = proc_data['Direction (0.01 deg)'] * 0.01
+	proc_data['Direction (0.01 deg)'] = opposite_az(proc_data['Direction (0.01 deg)'] * 0.01)
 	proc_data['Voltage (2.2/1023 v)'] = proc_data['Voltage (2.2/1023 v)'] / 1023 * 2.2
 
 	proc_data = proc_data.rename({
