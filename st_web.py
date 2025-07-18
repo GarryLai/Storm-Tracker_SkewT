@@ -69,7 +69,7 @@ if uploaded_file:
 	proc_data['Latitude (0.00001 deg)'] = proc_data['Latitude (0.00001 deg)'] * 0.00001
 	proc_data['MSL Height (0.01m)'] = proc_data['MSL Height (0.01m)'] * 0.01
 	proc_data['Speed (0.01 km/hr)'] = proc_data['Speed (0.01 km/hr)'] * 0.01 * 0.539956803
-	proc_data['Direction (0.01 deg)'] = (proc_data['Direction (0.01 deg)'] * 0.01).apply(lambda x: x + 180 if x > 180 else x - 180)
+	proc_data['Direction (0.01 deg)'] = (proc_data['Direction (0.01 deg)'] * 0.01).apply(lambda x: x - 180 if x > 180 else x + 180)
 	proc_data['Voltage (2.2/1023 v)'] = proc_data['Voltage (2.2/1023 v)'] / 1023 * 2.2
 
 	proc_data = proc_data.rename({
