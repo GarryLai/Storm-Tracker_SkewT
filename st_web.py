@@ -22,7 +22,7 @@ st.title('Storm Tracker Skew-T')
 pd.set_option('display.max_columns', None)
 
 def opposite_az(az):
-	if az.any() > 180:
+	if az.bool() > 180:
 		return az - 180
 	else:
 		return az + 180
